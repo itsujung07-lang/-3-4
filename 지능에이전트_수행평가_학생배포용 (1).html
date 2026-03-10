@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>지능 에이전트 수행평가</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:    #07090F;
+  --surf:  #0E1628;
+  --card:  #111F38;
+  --dark:  #0A1220;
+  --per:   #F59E0B;
+  --lrn:   #A855F7;
+  --rea:   #06B6D4;
+  --aut:   #10B981;
+  --coo:   #3B82F6;
+  --goal:  #EF4444;
+  --set:   #F97316;
+  --w:     #FFFFFF;
+  --mut:   #475569;
+  --lite:  #94A3B8;
+  --bdr:   rgba(255,255,255,0.08);
+  --font:  'Noto Sans KR', sans-serif;
+  --mono:  'JetBrains Mono', monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--font); background: var(--bg); color: var(--w); min-height: 100vh; padding-bottom: 80px; }
+
+/* PROGRESS */
+.progress-bar { position: fixed; top: 0; left: 0; height: 3px; background: linear-gradient(90deg, var(--per), var(--lrn), var(--rea), var(--aut)); transition: width .3s; z-index: 200; }
+
+/* HERO */
+.hero { background: linear-gradient(135deg, #0D1A30, #0A0F1E); border-bottom: 1px solid var(--bdr); padding: 48px 24px 40px; text-align: center; position: relative; overflow: hidden; }
+.hero::before { content:''; position:absolute; top:-60px; left:-60px; width:280px; height:280px; background:radial-gradient(circle, rgba(245,158,11,.12), transparent 70%); pointer-events:none; }
+.hero::after  { content:''; position:absolute; bottom:-80px; right:-40px; width:340px; height:340px; background:radial-gradient(circle, rgba(168,85,247,.10), transparent 70%); pointer-events:none; }
+.hero-badge { display:inline-flex; align-items:center; gap:8px; background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.3); border-radius:99px; padding:6px 18px; font-size:12px; font-weight:700; color:var(--per); letter-spacing:2px; text-transform:uppercase; margin-bottom:20px; }
+.hero h1 { font-size:clamp(20px,4vw,32px); font-weight:900; line-height:1.35; margin-bottom:10px; }
+.hero h1 em { font-style:normal; color:var(--per); }
+.hero-sub { font-size:13px; color:var(--lite); }
+
+/* WRAP */
+.wrap { max-width:860px; margin:0 auto; padding:0 24px; }
+
+/* STUDENT INFO */
+.info-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin:36px 0 28px; }
+@media(max-width:580px){ .info-grid{ grid-template-columns:1fr; } }
+.info-field { background:var(--surf); border:1.5px solid var(--bdr); border-radius:12px; overflow:hidden; }
+.info-field-label { display:block; font-size:11px; font-weight:700; color:var(--mut); letter-spacing:1px; text-transform:uppercase; padding:10px 14px 0; }
+.info-field input { background:transparent; border:none; padding:8px 14px 12px; font-size:14px; font-family:var(--font); color:var(--w); width:100%; outline:none; }
+
+/* EXAMPLE BLOCK */
+.example-block { background:linear-gradient(135deg,#0A1828,#0D1E30); border:1.5px solid rgba(6,182,212,.25); border-radius:20px; margin-bottom:28px; overflow:hidden; }
+.example-toggle { display:flex; align-items:center; justify-content:space-between; padding:20px 28px; cursor:pointer; user-select:none; }
+.example-toggle-left { display:flex; align-items:center; gap:12px; }
+.example-icon { width:40px; height:40px; background:rgba(6,182,212,.15); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+.example-toggle h3 { font-size:15px; font-weight:900; color:#67E8F9; }
+.example-toggle p { font-size:12px; color:var(--lite); margin-top:2px; }
+.example-arrow { font-size:18px; color:var(--rea); transition:transform .25s; }
+.example-block.open .example-arrow { transform:rotate(180deg); }
+.example-body { display:none; border-top:1px solid rgba(6,182,212,.15); padding:0 28px 28px; }
+.example-block.open .example-body { display:block; }
+
+.ex-item { margin-top:22px; }
+.ex-item-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.ex-num { width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:900; font-family:var(--mono); flex-shrink:0; }
+.ex-item-header h4 { font-size:13px; font-weight:900; }
+.ex-content { background:var(--dark); border-radius:12px; padding:14px 18px; font-size:13px; color:var(--lite); line-height:1.8; border-left:3px solid; }
+.ex-sub { font-size:12px; color:var(--mut); margin-bottom:6px; font-weight:700; letter-spacing:.5px; }
+.ex-tag { display:inline-block; font-size:11px; font-weight:700; padding:2px 10px; border-radius:99px; margin-bottom:8px; }
+
+/* SECTION CARD */
+.section-card { background:var(--card); border-radius:20px; border:1.5px solid var(--bdr); margin-bottom:22px; overflow:hidden; transition:border-color .2s; }
+.section-card:focus-within { border-color:rgba(255,255,255,.18); }
+.section-header { display:flex; align-items:center; gap:14px; padding:20px 28px 16px; border-bottom:1px solid var(--bdr); }
+.section-num { width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:900; font-family:var(--mono); flex-shrink:0; }
+.section-header h2 { font-size:16px; font-weight:900; }
+.section-header p { font-size:12px; color:var(--lite); margin-top:2px; }
+.section-body { padding:22px 28px; }
+
+/* COLOR THEMES */
+.c-set { --ac:var(--set); }
+.c-per { --ac:var(--per); }
+.c-lrn { --ac:var(--lrn); }
+.c-rea { --ac:var(--rea); }
+.c-tr  { --ac:var(--aut); }
+.section-card .section-num { background:color-mix(in srgb,var(--ac) 15%,transparent); color:var(--ac); }
+.section-card .section-header h2 { color:var(--ac); }
+
+/* FIELD */
+.field { margin-bottom:16px; }
+.field:last-child { margin-bottom:0; }
+.field label { display:block; font-size:12px; font-weight:700; color:var(--lite); letter-spacing:1.5px; text-transform:uppercase; margin-bottom:8px; }
+.field label .req { color:var(--ac,var(--per)); margin-left:3px; }
+.field input, .field textarea, .field select { width:100%; background:var(--surf); border:1.5px solid var(--bdr); border-radius:12px; padding:13px 16px; font-size:14px; font-family:var(--font); color:var(--w); outline:none; transition:border-color .2s, box-shadow .2s; resize:vertical; }
+.field input:focus, .field textarea:focus { border-color:var(--ac,var(--per)); box-shadow:0 0 0 3px color-mix(in srgb,var(--ac,var(--per)) 12%,transparent); }
+.field textarea { min-height:110px; line-height:1.8; }
+.char-counter { text-align:right; font-size:11px; color:var(--mut); margin-top:5px; font-family:var(--mono); }
+
+/* CHIPS */
+.ex-row { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+.ex-chip { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:99px; padding:5px 14px; font-size:12px; color:var(--lite); cursor:pointer; transition:all .15s; user-select:none; }
+.ex-chip:hover { background:rgba(255,255,255,.08); color:var(--w); }
+.ex-chip.active { background:color-mix(in srgb,var(--ac,var(--per)) 18%,transparent); border-color:var(--ac,var(--per)); color:var(--ac,var(--per)); }
+
+/* CHECKBOX */
+.check-group { display:flex; flex-direction:column; gap:10px; }
+.check-item { display:flex; align-items:flex-start; gap:12px; background:var(--surf); border:1.5px solid var(--bdr); border-radius:12px; padding:14px 16px; cursor:pointer; transition:border-color .15s; }
+.check-item:has(input:checked) { border-color:var(--aut); background:rgba(16,185,129,.06); }
+.check-item input[type="checkbox"] { width:18px; height:18px; flex-shrink:0; accent-color:var(--aut); margin-top:2px; }
+.check-item-title { font-size:14px; font-weight:700; margin-bottom:4px; }
+.check-item-desc  { font-size:12px; color:var(--lite); line-height:1.6; }
+.check-item-extra { display:none; margin-top:10px; }
+.check-item:has(input:checked) .check-item-extra { display:block; }
+.check-item-extra textarea { width:100%; background:var(--card); border:1.5px solid rgba(255,255,255,.08); border-radius:8px; padding:10px 12px; font-size:13px; font-family:var(--font); color:var(--w); resize:vertical; min-height:80px; outline:none; transition:border-color .2s; line-height:1.8; }
+.check-item:has(input:checked) .check-item-extra textarea { border-color:rgba(16,185,129,.3); }
+
+/* SUBMIT */
+.submit-zone { margin-top:32px; text-align:center; }
+.btn-submit { display:inline-flex; align-items:center; gap:10px; background:linear-gradient(135deg,#F59E0B,#EF4444); border:none; border-radius:16px; padding:18px 52px; font-size:17px; font-weight:900; font-family:var(--font); color:var(--w); cursor:pointer; transition:transform .15s, box-shadow .15s; box-shadow:0 4px 24px rgba(245,158,11,.25); }
+.btn-submit:hover { transform:translateY(-2px); box-shadow:0 8px 32px rgba(245,158,11,.35); }
+.btn-submit:active { transform:translateY(0); }
+.btn-submit:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+
+/* TOAST */
+.toast { position:fixed; bottom:32px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--card); border:1.5px solid rgba(16,185,129,.4); border-radius:14px; padding:14px 28px; font-size:14px; font-weight:700; color:var(--aut); opacity:0; transition:all .3s; pointer-events:none; z-index:999; white-space:nowrap; }
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+.toast.error { border-color:rgba(239,68,68,.4); color:var(--goal); }
+
+/* SCRIPT GUIDE */
+.guide-box { background:var(--surf); border:1.5px solid rgba(6,182,212,.2); border-radius:16px; padding:22px 26px; margin-bottom:28px; }
+.guide-box h3 { font-size:14px; font-weight:900; color:var(--rea); margin-bottom:14px; display:flex; align-items:center; gap:8px; }
+.guide-steps { display:flex; flex-direction:column; gap:10px; }
+.guide-step { display:flex; align-items:flex-start; gap:12px; font-size:13px; color:var(--lite); line-height:1.7; }
+.guide-step-num { width:22px; height:22px; background:rgba(6,182,212,.15); border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:900; color:var(--rea); flex-shrink:0; font-family:var(--mono); margin-top:1px; }
+.script-url-wrap { display:flex; align-items:center; gap:8px; margin-top:14px; }
+.script-url-input { flex:1; background:var(--dark); border:1.5px solid rgba(6,182,212,.25); border-radius:10px; padding:10px 14px; font-size:13px; font-family:var(--mono); color:var(--w); outline:none; }
+.script-url-input:focus { border-color:var(--rea); }
+.script-url-input::placeholder { color:var(--mut); }
+.btn-save-url { background:var(--rea); border:none; border-radius:8px; padding:10px 16px; font-size:12px; font-weight:700; color:#000; cursor:pointer; font-family:var(--font); white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progress"></div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">📋 Performance Assessment</div>
+  <h1>인공지능과 지능 에이전트의 관계 이해 및<br><em>실생활 속 지능 에이전트 사례와 역할 설명하기</em></h1>
+  <p class="hero-sub" style="margin-top:10px;">아래 항목을 모두 작성한 후 제출 버튼을 눌러주세요</p>
+</div>
+
+<div class="wrap">
+
+  <!-- 학생 정보 -->
+  <div class="info-grid">
+    <div class="info-field">
+      <span class="info-field-label">학번</span>
+      <input type="text" id="student-id" placeholder="예) 30101" maxlength="10">
+    </div>
+    <div class="info-field">
+      <span class="info-field-label">이름</span>
+      <input type="text" id="student-name" placeholder="홍길동" maxlength="10">
+    </div>
+    <div class="info-field">
+      <span class="info-field-label">제출일</span>
+      <input type="text" id="submit-date" readonly>
+    </div>
+  </div>
+
+  <!-- ═══ 예시 답안 ═══ -->
+  <div class="example-block" id="exampleBlock">
+    <div class="example-toggle" onclick="toggleExample()">
+      <div class="example-toggle-left">
+        <div class="example-icon">💡</div>
+        <div>
+          <h3>예시 답안 보기</h3>
+          <p>참고용 예시입니다 — 그대로 옮겨쓰지 마세요</p>
+        </div>
+      </div>
+      <div class="example-arrow">▼</div>
+    </div>
+    <div class="example-body">
+
+      <!-- 예시 1번 -->
+      <div class="ex-item">
+        <div class="ex-item-header">
+          <div class="ex-num" style="background:rgba(249,115,22,.15);color:#FB923C;">1</div>
+          <h4 style="color:#FB923C;">지능 에이전트 설정</h4>
+        </div>
+        <div class="ex-content" style="border-left-color:#FB923C;">
+          <div class="ex-sub">① 에이전트 이름</div>
+          <div style="color:var(--w); font-weight:700; margin-bottom:12px;">🚦 스마트 교통 신호 제어 에이전트</div>
+          <div class="ex-sub">② 문제와 목적</div>
+          도심에서 차량이 몰리는 시간대에 신호 체계가 고정되어 있어 불필요한 정체가 발생한다. 이 에이전트는 실시간 교통 밀도를 분석하여 신호 주기를 자동으로 조절함으로써 차량 흐름을 최적화하고 교통 혼잡을 줄이는 것을 목적으로 한다.
+        </div>
+      </div>
+
+      <!-- 예시 2번 -->
+      <div class="ex-item">
+        <div class="ex-item-header">
+          <div class="ex-num" style="background:rgba(245,158,11,.15);color:var(--per);">2</div>
+          <h4 style="color:var(--per);">👁️ 인식 (Perception)</h4>
+        </div>
+        <div class="ex-content" style="border-left-color:var(--per);">
+          교차로에 설치된 카메라와 센서를 통해 <b style="color:var(--w)">차량 수와 속도</b>, <b style="color:var(--w)">보행자 수</b>, <b style="color:var(--w)">현재 신호 상태</b>, <b style="color:var(--w)">시간대 정보</b>를 인식한다. 또한 인접 교차로의 신호 상태도 수신하여 전체 구간의 흐름을 파악한다.
+        </div>
+      </div>
+
+      <!-- 예시 3번 -->
+      <div class="ex-item">
+        <div class="ex-item-header">
+          <div class="ex-num" style="background:rgba(168,85,247,.15);color:var(--lrn);">3</div>
+          <h4 style="color:var(--lrn);">📚 학습 (Learning)</h4>
+        </div>
+        <div class="ex-content" style="border-left-color:var(--lrn);">
+          <b style="color:var(--w)">시간대별 교통량 패턴</b>(출퇴근 시간, 주말/평일 차이), <b style="color:var(--w)">과거 정체 발생 이력</b>, <b style="color:var(--w)">특정 신호 주기 적용 후 차량 흐름 변화 데이터</b>를 학습한다. 이를 통해 어떤 상황에서 어떤 신호 주기가 가장 효과적인지 스스로 규칙을 찾아낸다.
+        </div>
+      </div>
+
+      <!-- 예시 4번 -->
+      <div class="ex-item">
+        <div class="ex-item-header">
+          <div class="ex-num" style="background:rgba(6,182,212,.15);color:var(--rea);">4</div>
+          <h4 style="color:var(--rea);">🧠 추론 (Reasoning)</h4>
+        </div>
+        <div class="ex-content" style="border-left-color:var(--rea);">
+          <b style="color:var(--w)">북쪽 도로에 차량 80대 대기 중</b> + <b style="color:var(--w)">동쪽 도로는 5대</b>라는 인식 정보와, <b style="color:var(--w)">이 시간대 북쪽 우선 신호가 효과적</b>이라는 학습 결과를 결합하여 → <b style="color:var(--w)">북쪽 신호를 60초로 연장하고 동쪽은 20초로 단축</b>한다는 판단을 내린다.
+        </div>
+      </div>
+
+      <!-- 예시 5번 -->
+      <div class="ex-item">
+        <div class="ex-item-header">
+          <div class="ex-num" style="background:rgba(16,185,129,.15);color:var(--aut);">5</div>
+          <h4 style="color:var(--aut);">⚡ 지능 에이전트의 특징</h4>
+        </div>
+        <div class="ex-content" style="border-left-color:var(--aut); display:flex; flex-direction:column; gap:14px;">
+          <div>
+            <span class="ex-tag" style="background:rgba(16,185,129,.15);color:var(--aut);">🤖 자율성</span><br>
+            교통 관제 센터 직원이 매번 신호를 바꾸지 않아도 에이전트가 실시간 상황을 스스로 판단해 신호를 자동으로 조절한다.
+          </div>
+          <div>
+            <span class="ex-tag" style="background:rgba(59,130,246,.15);color:var(--coo);">👥 협력성</span><br>
+            인접 교차로의 에이전트끼리 실시간으로 교통 정보를 공유하여 한 구역의 신호가 바뀌면 이웃 교차로도 연동해 최적의 흐름을 만든다.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ① 에이전트 설정 -->
+  <div class="section-card c-set">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <div>
+        <h2>지능 에이전트 설정</h2>
+        <p>활용할 지능 에이전트를 선택 또는 직접 설정하세요</p>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="field">
+        <label>예시 선택 (클릭하거나 직접 입력)</label>
+        <div class="ex-row" id="preset-chips">
+          <div class="ex-chip" data-val="스마트 급식 추천 에이전트">🍱 스마트 급식 추천 에이전트</div>
+          <div class="ex-chip" data-val="도서관 자리 안내 에이전트">📚 도서관 자리 안내 에이전트</div>
+          <div class="ex-chip" data-val="학교 길찾기 안내 에이전트">🗺️ 학교 길찾기 안내 에이전트</div>
+          <div class="ex-chip" data-val="분리수거 안내 에이전트">♻️ 분리수거 안내 에이전트</div>
+          <div class="ex-chip" data-val="공부 도우미 에이전트">📖 공부 도우미 에이전트</div>
+        </div>
+      </div>
+      <div class="field">
+        <label>① 지능 에이전트 이름 <span class="req">*</span></label>
+        <input type="text" id="agent-name" maxlength="50">
+      </div>
+      <div class="field">
+        <label>② 해결하려는 문제와 목적 <span class="req">*</span></label>
+        <textarea id="agent-purpose"></textarea>
+        <div class="char-counter"><span id="cnt-purpose">0</span> / 300자</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② 인식 -->
+  <div class="section-card c-per">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <div>
+        <h2>👁️ 인식 (Perception)</h2>
+        <p>이 에이전트는 환경에서 어떤 정보를 인식해야 하는가?</p>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="field">
+        <label>인식해야 할 정보를 구체적으로 작성하세요 <span class="req">*</span></label>
+        <textarea id="ans-perception"></textarea>
+        <div class="char-counter"><span id="cnt-per">0</span> / 300자</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ 학습 -->
+  <div class="section-card c-lrn">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <div>
+        <h2>📚 학습 (Learning)</h2>
+        <p>어떤 데이터를 학습하여 더 좋은 판단을 할 수 있는가?</p>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="field">
+        <label>학습해야 할 데이터를 구체적으로 작성하세요 <span class="req">*</span></label>
+        <textarea id="ans-learning"></textarea>
+        <div class="char-counter"><span id="cnt-lrn">0</span> / 300자</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ 추론 -->
+  <div class="section-card c-rea">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <div>
+        <h2>🧠 추론 (Reasoning)</h2>
+        <p>인식·학습한 정보를 바탕으로 무엇을 판단하거나 결정하는가?</p>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="field">
+        <label>이 에이전트가 내리는 판단과 결정을 구체적으로 작성하세요 <span class="req">*</span></label>
+        <textarea id="ans-reasoning"></textarea>
+        <div class="char-counter"><span id="cnt-rea">0</span> / 300자</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑤ 특징 -->
+  <div class="section-card c-tr">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <div>
+        <h2>⚡ 지능 에이전트의 특징</h2>
+        <p>두 가지 이상 선택하여 이 에이전트에 적용해 설명하세요</p>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="check-group">
+        <label class="check-item">
+          <input type="checkbox" name="trait" value="자율성">
+          <div class="check-item-text">
+            <div class="check-item-title" style="color:var(--aut)">🤖 자율성</div>
+            <div class="check-item-desc">사람의 명령 없이 스스로 행동하는 능력</div>
+            <div class="check-item-extra">
+              <textarea></textarea>
+            </div>
+          </div>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" name="trait" value="협력성">
+          <div class="check-item-text">
+            <div class="check-item-title" style="color:var(--coo)">👥 협력성</div>
+            <div class="check-item-desc">다른 시스템이나 에이전트와 협력하는 능력</div>
+            <div class="check-item-extra">
+              <textarea></textarea>
+            </div>
+          </div>
+        </label>
+        <label class="check-item">
+          <input type="checkbox" name="trait" value="목표지향성">
+          <div class="check-item-text">
+            <div class="check-item-title" style="color:var(--goal)">🎯 목표지향성</div>
+            <div class="check-item-desc">목표를 달성하기 위해 계속 행동하는 능력</div>
+            <div class="check-item-extra">
+              <textarea></textarea>
+            </div>
+          </div>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUBMIT -->
+  <div class="submit-zone">
+    <button class="btn-submit" id="btn-submit" onclick="submitForm()">
+      📤 답안 제출하기
+    </button>
+    <p style="margin-top:12px; font-size:12px; color:var(--mut);">제출하면 선생님 스프레드시트에 자동으로 저장됩니다</p>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── 날짜
+const today = new Date();
+document.getElementById('submit-date').value =
+  today.getFullYear()+'년 '+(today.getMonth()+1)+'월 '+today.getDate()+'일';
+
+// GAS URL 고정 설정됨
+
+// ── 예시 토글
+function toggleExample() {
+  document.getElementById('exampleBlock').classList.toggle('open');
+}
+
+// ── 프리셋 칩
+document.querySelectorAll('.ex-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.ex-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    document.getElementById('agent-name').value = chip.dataset.val;
+    updateProgress();
+  });
+});
+
+// ── 글자 수
+function setupCounter(inputId, counterId, max) {
+  const el = document.getElementById(inputId);
+  const cnt = document.getElementById(counterId);
+  if (!el||!cnt) return;
+  el.addEventListener('input', () => {
+    cnt.textContent = el.value.length;
+    cnt.style.color = el.value.length > max*.9 ? '#EF4444' : '#475569';
+    updateProgress();
+  });
+}
+setupCounter('agent-purpose','cnt-purpose',300);
+setupCounter('ans-perception','cnt-per',300);
+setupCounter('ans-learning','cnt-lrn',300);
+setupCounter('ans-reasoning','cnt-rea',300);
+
+// ── 진행도
+function getFilledCount() {
+  let n = 0;
+  if (document.getElementById('student-id').value.trim())       n++;
+  if (document.getElementById('student-name').value.trim())     n++;
+  if (document.getElementById('agent-name').value.trim())       n++;
+  if (document.getElementById('agent-purpose').value.trim())    n++;
+  if (document.getElementById('ans-perception').value.trim())   n++;
+  if (document.getElementById('ans-learning').value.trim())     n++;
+  if (document.getElementById('ans-reasoning').value.trim())    n++;
+  if (document.querySelectorAll('input[name="trait"]:checked').length >= 2) n++;
+  return n;
+}
+function updateProgress() {
+  document.getElementById('progress').style.width = (getFilledCount()/8*100)+'%';
+}
+document.querySelectorAll('input,textarea').forEach(el => {
+  el.addEventListener('input', updateProgress);
+  el.addEventListener('change', updateProgress);
+});
+
+// ── 토스트
+function showToast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError?' error':'');
+  setTimeout(() => t.className='toast', 3000);
+}
+
+// ── 제출
+async function submitForm() {
+  const sid   = document.getElementById('student-id').value.trim();
+  const sname = document.getElementById('student-name').value.trim();
+  const aname = document.getElementById('agent-name').value.trim();
+  const apurp = document.getElementById('agent-purpose').value.trim();
+  const aper  = document.getElementById('ans-perception').value.trim();
+  const alrn  = document.getElementById('ans-learning').value.trim();
+  const area  = document.getElementById('ans-reasoning').value.trim();
+  const checked = [...document.querySelectorAll('input[name="trait"]:checked')];
+
+  if (!sid||!sname)       { showToast('⚠️ 학번과 이름을 입력해주세요',true); return; }
+  if (!aname||!apurp)     { showToast('⚠️ 1번 항목을 완성해주세요',true); return; }
+  if (!aper)              { showToast('⚠️ 2번 항목(인식)을 작성해주세요',true); return; }
+  if (!alrn)              { showToast('⚠️ 3번 항목(학습)을 작성해주세요',true); return; }
+  if (!area)              { showToast('⚠️ 4번 항목(추론)을 작성해주세요',true); return; }
+  if (checked.length < 2) { showToast('⚠️ 5번 항목에서 2개 이상 선택해주세요',true); return; }
+
+  const traits = checked.map(cb => ({
+    name: cb.value,
+    desc: cb.closest('.check-item').querySelector('textarea').value.trim()
+  }));
+
+  const payload = { studentId:sid, studentName:sname, agentName:aname, agentPurpose:apurp, perception:aper, learning:alrn, reasoning:area, traits };
+
+  const gasUrl = 'https://script.google.com/macros/s/AKfycbzvy_SYfwL0VqgDizYkSXJ1nA4IQAY2ckrQ_v-X9ZlSJgdMCQsLAAjmM0i8mVd5hf9z/exec';
+
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+  btn.textContent = '⏳ 제출 중...';
+
+  if (gasUrl && gasUrl.startsWith('https://script.google.com')) {
+    try {
+      await fetch(gasUrl, {
+        method:'POST',
+        mode:'no-cors',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      });
+      showToast('✅ 제출 완료! 선생님 스프레드시트에 저장되었습니다');
+    } catch(e) {
+      showToast('⚠️ 전송 오류 — 파일로 저장합니다', true);
+      downloadFile(payload);
+    }
+  } else {
+    // GAS URL 없으면 파일로 저장
+    downloadFile(payload);
+    showToast('✅ 파일로 저장되었습니다 (URL 미설정)');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '📤 답안 제출하기';
+}
+
+function downloadFile(d) {
+  const traitText = (d.traits||[]).map(t=>`  [${t.name}]\n  ${t.desc}`).join('\n\n');
+  const txt = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+지능 에이전트 수행평가 답안지
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+학번: ${d.studentId}    이름: ${d.studentName}    제출일: ${document.getElementById('submit-date').value}
+
+━━ 1. 지능 에이전트 설정
+① 이름: ${d.agentName}
+② 문제와 목적:
+${d.agentPurpose}
+
+━━ 2. 인식
+${d.perception}
+
+━━ 3. 학습
+${d.learning}
+
+━━ 4. 추론
+${d.reasoning}
+
+━━ 5. 특징
+${traitText}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([txt],{type:'text/plain;charset=utf-8'}));
+  a.download = `수행평가_${d.studentId}_${d.studentName}.txt`;
+  a.click();
+}
+
+updateProgress();
+</script>
+</body>
+</html>
